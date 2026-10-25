@@ -1,10 +1,40 @@
 {
-  "name": "my-utils",
+  "name": "webutils",
   "version": "1.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./router": {
+      "types": "./dist/router.d.ts",
+      "import": "./dist/router.js"
+    },
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "import": "./dist/handler.js"
+    }
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.4",
+    "itty-router": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "itty-router": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "drizzle-orm": "^0.45.4",
+    "itty-router": "^5.0.0",
+    "typescript": "^7.0.2"
   }
 }

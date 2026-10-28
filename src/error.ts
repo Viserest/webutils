@@ -1,6 +1,6 @@
 
-import { tag } from "./tag.ts";
-import { html, escape } from "./utils.ts";
+import { tag } from "./tag.js";
+import { html, escape } from "./utils.js";
 
 const TITLES: Record<number, string> = {
 	400: "Bad Request",

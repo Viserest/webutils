@@ -1,60 +1,69 @@
 
 import { type IRequest, type RouterType } from "itty-router";
 import * as d from "drizzle-orm";
-import { drizzle, DrizzleD1Database, type AnyD1Database } from "drizzle-orm/d1";
-import * as s from "drizzle-orm/sqlite-core";
+import { type DrizzleD1Database } from "drizzle-orm/d1";
+import type * as s from "drizzle-orm/sqlite-core";
 
-import { nowSecs, parseToObject, reply, toInt } from "./utils.ts";
-import { Uuid } from "./uuid.ts";
-import { defineForm, type Fields, type FormMethod, type FormResult } from "./form.ts";
-import { tag } from "./tag.ts";
+import { nowSecs, parseToObject, reply, toInt } from "./utils.js";
+import { Uuid } from "./uuid.js";
+import { defineForm, type Fields, type FormResult } from "./form.js";
+import { tag } from "./tag.js";
 
 //
-// Types
+// Payloads
 //
 
 /** A Drizzle sqliteTable that has an `id` column. */
-export type TableWithId = s.SQLiteTable & { id: s.SQLiteColumn };
+type TableWithId = s.SQLiteTable & { id: s.SQLiteColumn };
 
 /** Column keys of a table, e.g. "id" | "name" | "email". */
-export type Field<T extends s.SQLiteTable> = keyof T["$inferSelect"] & string;
+type Field<T extends s.SQLiteTable> = keyof T["$inferSelect"] & string;
 
 /** Payload for create: the whole insert model, or only the chosen fields. */
-export type CreatePayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
+type CreatePayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
 	Pick<T["$inferInsert"], Extract<K, keyof T["$inferInsert"]>>;
 
 /** Payload for update: same as create, but every field is optional. */
-export type UpdatePayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
+type UpdatePayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
 	Partial<CreatePayload<T, K>>;
 
 /** Shape returned by read/list: the whole row, or only the chosen fields. */
-export type ReadPayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
+type ReadPayload<T extends s.SQLiteTable, K extends Field<T> = Field<T>> =
 	Pick<T["$inferSelect"], K>;
 
-export type OpType = "list" | "create" | "read" | "update" | "delete";
+/** What each form's parseBody() produces. */
+interface Payloads<T extends TableWithId> {
+	list: { limit?: string; offset?: string };
+	create: CreatePayload<T>;
+	read: { id: string };
+	update: { id: string } & UpdatePayload<T>;
+	delete: { id: string };
+}
 
 //
 // Handlers
 //
 
 /** A before step: may return a Response (stop), fields to add to req, or nothing. */
-export type BeforeHandler<In = IRequest, A extends any[] = any[], Add extends object = {}> = (
+type BeforeHandler<In = IRequest, A extends any[] = any[], Add extends object = {}> = (
 	req: In,
 	...args: A
 ) => Response | Add | void | Promise<Response | Add | void>;
 
-export type MainHandler<Req = IRequest, A extends any[] = any[]> = (
+type MainHandler<Req = IRequest, A extends any[] = any[]> = (
 	req: Req,
 	...args: A
 ) => Response | Promise<Response>;
 
-export type AfterHandler<Req = IRequest, A extends any[] = any[]> = (
+type AfterHandler<Req = IRequest, A extends any[] = any[]> = (
 	res: Response,
 	req: Req,
 	...args: A
 ) => Response | void | Promise<Response | void>;
 
-// ---- type-level accumulation ------------------------------------------------
+//
+// Request type modifications
+//
 
 /** Fields a step adds. Response/void-only steps add nothing ({}). */
 type Added<H> = H extends (...a: any[]) => infer R
@@ -76,9 +85,11 @@ type Checked<Base, A extends any[], Hs extends readonly unknown[]> =
 /** `any` stays `any`, so loosely typed options still work. */
 type ReqOf<Base, B extends readonly any[]> = 0 extends 1 & B ? any : Accum<Base, B>;
 
-// ---- options ------------------------------------------------------------------
+//
+// Options
+//
 
-export interface HandlerOption<Base, A extends any[], B extends readonly BeforeHandler<any, A, any>[] = any> {
+interface HandlerOption<Base, A extends any[], B extends readonly BeforeHandler<any, A, any>[] = any> {
 	/** Handlers that run before the main handler. Their returned fields are merged into req. */
 	before?: B & Checked<Base, A, B>;
 	/** Handlers that run after the main handler. Receive the fully extended req. */
@@ -89,21 +100,21 @@ export interface HandlerOption<Base, A extends any[], B extends readonly BeforeH
 	message?: string;
 }
 
-/** Infers the request type per operation. Wrap an operation's options in this. */
-export const op = <const B extends readonly BeforeHandler<any, any>[]>(
-	o: HandlerOption<B> & { fields?: readonly any[]; soft?: boolean },
-) => o;
-
-//
-// options
-//
-
 /** `fields` limits which columns are used. Omit it to use the entire table. */
-interface FieldOption<T extends s.SQLiteTable> extends HandlerOption {
+interface FieldOption<
+	T extends s.SQLiteTable,
+	Base = IRequest,
+	A extends any[] = any[],
+  B extends readonly BeforeHandler<any, A, any>[] = any,
+> extends HandlerOption<Base, A, B> {
 	fields?: readonly Field<T>[];
 }
 
-export interface DeleteOption extends HandlerOption {
+interface DeleteOption<
+	Base = IRequest,
+	A extends any[] = any[],
+	B extends readonly BeforeHandler<any, A, any>[] = any,
+> extends HandlerOption<Base, A, B> {
 	/**
 	 * true  -> UPDATE <table> SET deleted_at = <now> WHERE id = ?
 	 * false -> DELETE FROM <table> WHERE id = ?   (default)
@@ -113,26 +124,19 @@ export interface DeleteOption extends HandlerOption {
 }
 
 /** Every key is required. Set one to `null` to skip that route. */
-export interface RouteOptions<T extends TableWithId> {
+interface RouteOptions<T extends TableWithId, Base = IRequest, A extends any[] = any[]> {
 	table: T;
-	list: FieldOption<T> | null;
-	create: FieldOption<T> | null;
-	read: FieldOption<T> | null;
-	update: FieldOption<T> | null;
-	delete: DeleteOption | null;
+	list: FieldOption<T, Base, A> | null;
+	create: FieldOption<T, Base, A> | null;
+	read: FieldOption<T, Base, A> | null;
+	update: FieldOption<T, Base, A> | null;
+	delete: DeleteOption<Base, A> | null;
 }
 
-/** What each form's parseBody() produces. */
-interface Payloads<T extends TableWithId> {
-	list: { limit?: string; offset?: string };
-	create: CreatePayload<T>;
-	read: { id: string };
-	update: { id: string } & UpdatePayload<T>;
-	delete: { id: string };
-}
+type OpType = "list" | "create" | "read" | "update" | "delete";
 
 /** Each handler key maps to its FormResult, or null when it was skipped. */
-export type HandlerResult<T extends TableWithId, O extends RouteOptions<T>> = {
+type HandlerResult<T extends TableWithId, O extends RouteOptions<T>> = {
 	[K in OpType]: O[K] extends null ? null : FormResult<Fields, Payloads<T>[K]>;
 } & {
 	/** All configured forms, wrapped in a single <div>. */
@@ -146,27 +150,24 @@ export type HandlerResult<T extends TableWithId, O extends RouteOptions<T>> = {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-/** Create D1 Database from schema and Cloudflare Bindings */
-export function createD1Database(schema: any, db: AnyD1Database): DrizzleD1Database<typeof schema> {
-  return drizzle(db, { schema });
-}
-
 /**
  *
- * // One line per project:
+ * One line per project:
+ * ```typescript
  * export const { handler, op } = createHandlers<IRequest, [Bindings, ExecutionContext]>({
  *   getDb: (req, env) => (req as any).db ?? createD1Database(env),
  * });
+ * ```
  *
  * @param cfg
  * @returns
  */
-export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
+export function createHandlers<Schema extends Record<string, string>, Base extends IRequest, A extends any[]>(cfg: {
 	/** Where the default handlers get their db. Replaces the hard-coded `req.db ?? createDb(env)`. */
-	getDb: (req: Base, ...args: A) => Db;
+	getDb: (req: Base, ...args: A) => DrizzleD1Database<Schema>;
 }) {
 	const chain =
-		(opt: HandlerOption<Base, A, any>, fallback: MainHandler<any, A>): MainHandler<Base, A> =>
+		(opt: HandlerOption<Base, A, any>, fallback: MainHandler<Base, A>): MainHandler<Base, A> =>
 		async (req, ...args) => {
 			for (const before of (opt.before ?? []) as readonly BeforeHandler<any, A, any>[]) {
 				const out = await before(req, ...args);
@@ -180,6 +181,7 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			return res;
 		};
 
+	/** Infers the request type per operation. Wrap an operation's options in this. */
 	const op = <const B extends readonly BeforeHandler<any, A, any>[]>(
 		o: HandlerOption<Base, A, B> & { fields?: readonly any[]; soft?: boolean },
 	) => o;
@@ -251,8 +253,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			const opt = options.list;
 			router.get(
 				path,
-				chain(opt, async (req, env) => {
-					const db = req.db ?? createD1Database(schema, binding_db);
+				chain(opt, async (req, ...args) => {
+          const db = cfg.getDb(req, ...args);
 					const limit = Math.min(toInt(req.query?.limit, DEFAULT_LIMIT), MAX_LIMIT);
 					const offset = toInt(req.query?.offset, 0);
 
@@ -290,8 +292,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			const opt = options.create;
 			router.post(
 				path,
-				chain(opt, async (req, env) => {
-					const db = req.db ?? createD1Database(schema, binding_db);
+				chain(opt, async (req, ...args) => {
+          const db = cfg.getDb(req, ...args);
 					const body = await req.json().catch(() => undefined);
 					const data = parseToObject(body, columnWritableKeys(opt.fields));
 					if (!data) return reply("Body must be a JSON object", 400);
@@ -319,8 +321,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			const opt = options.read;
 			router.get(
 				path + "/:id",
-				chain(opt, async (req, env) => {
-					const db = req.db ?? createD1Database(schema, binding_db);
+				chain(opt, async (req, ...args) => {
+          const db = cfg.getDb(req, ...args);
 					const id = req.params["id"];
 					if (!id) return reply("Missing required field, id", 400);
 
@@ -348,8 +350,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			const opt = options.update;
 			router.put(
 				path + "/:id",
-				chain(opt, async (req, env) => {
-					const db = req.db ?? createD1Database(schema, binding_db);
+				chain(opt, async (req, ...args) => {
+          const db = cfg.getDb(req, ...args);
 					const id = req.params["id"];
 					if (!id) return reply("Missing required field, id", 400);
 
@@ -384,8 +386,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			const opt = options.delete;
 			router.delete(
 				path + "/:id",
-				chain(opt, async (req, env) => {
-					const db = req.db ?? createD1Database(schema, binding_db);
+				chain(opt, async (req, ...args) => {
+          const db = cfg.getDb(req, ...args);
 					const id = req.params["id"];
 					if (!id) return reply("Missing required field, id", 400);
 

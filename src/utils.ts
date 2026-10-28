@@ -1,5 +1,5 @@
 
-import { type Result, Ok, Err } from "./result.ts";
+import { type Result, Ok, Err } from "./result.js";
 
 /** Get unix epoch in seconds */
 export function nowSecs(): number {

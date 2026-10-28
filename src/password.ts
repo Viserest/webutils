@@ -22,9 +22,9 @@ export function fromBase64Url(s: string): Uint8Array {
 
 async function derive(
 	password: string,
-	salt: Uint8Array,
+	salt: Uint8Array<ArrayBuffer>,
 	iterations: number,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
 	const key = await crypto.subtle.importKey(
 		"raw",
 		new TextEncoder().encode(password),
@@ -43,7 +43,7 @@ async function derive(
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 	if (a.length !== b.length) return false;
 	let diff = 0;
-	for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+	for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
 	return diff === 0;
 }
 
@@ -72,13 +72,13 @@ export async function verifyPassword(
 
 	let salt: Uint8Array, expected: Uint8Array;
 	try {
-		salt = fromBase64Url(parts[2]);
-		expected = fromBase64Url(parts[3]);
+		salt = fromBase64Url(parts[2]!);
+		expected = fromBase64Url(parts[3]!);
 	} catch {
 		return false;
 	}
 
-	const actual = await derive(password, salt, iterations);
+	const actual = await derive(password, salt as Uint8Array<ArrayBuffer>, iterations);
 	return timingSafeEqual(actual, expected);
 }
 

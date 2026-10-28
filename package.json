@@ -21,7 +21,8 @@
   },
   "peerDependencies": {
     "drizzle-orm": "^0.45.4",
-    "itty-router": "^5.0.0"
+    "itty-router": "^5.0.0",
+    "@cloudflare/workers-types": "*"
   },
   "peerDependenciesMeta": {
     "itty-router": {
@@ -29,10 +30,13 @@
     },
     "drizzle-orm": {
       "optional": true
+    },
+    "@cloudflare/workers-types": {
+      "optional": true
     }
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@cloudflare/workers-types": "^5.20261026.1",
     "drizzle-orm": "^0.45.4",
     "itty-router": "^5.0.0",
     "typescript": "^7.0.2"

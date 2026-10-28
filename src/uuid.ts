@@ -1,33 +1,33 @@
 
 export class Uuid {
-  public readonly value: Uint8Array;
+  public readonly value: Uint8Array<ArrayBuffer>;
 
   private constructor(value: Uint8Array) {
     if (value.length !== 16) {
       throw new Error("Uuid must contain exactly 16 bytes");
     }
 
-    this.value = Buffer.from(value);
+    this.value = new Uint8Array(value);
   }
 
   public static randomv4(): Uuid {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
 
     // Uuid version 4
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
 
     // RFC 4122 variant
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
 
     return new Uuid(bytes);
   }
 
-  public static fromBytes(bytes: Buffer): Uuid {
+  public static fromBytes(bytes: Uint8Array): Uuid {
     if (bytes.length !== 16) {
       throw new Error("Uuid must contain exactly 16 bytes");
     }
 
-    return new Uuid(Buffer.from(bytes));
+    return new Uuid(bytes);
   }
 
   public static fromString(value: string): Uuid {
@@ -45,11 +45,16 @@ export class Uuid {
       throw new Error("Uuid hex must contain exactly 32 hexadecimal characters");
 		}
 
-		return new Uuid(Buffer.from(value, "hex"));
+		const bytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) {
+      bytes[i] = parseInt(value.slice(i * 2, i * 2 + 2), 16);
+    }
+
+    return new Uuid(bytes);
   }
 
-  public toBytes(): Buffer {
-    return Buffer.from(this.value);
+  public toBytes(): Uint8Array {
+    return Uint8Array.from(this.value);
   }
 
   public toString(): string {

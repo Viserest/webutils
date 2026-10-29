@@ -1,5 +1,5 @@
 
-import { type Result, Ok, Err } from "./result.js";
+import { type Result, Ok, Err } from "./result";
 
 /** Get unix epoch in seconds */
 export function nowSecs(): number {
@@ -82,11 +82,19 @@ export function getCookie(headers: Headers, name: string): Result<string> {
 export function html(v: string, init?: ResponseInit) {
   return new Response(v, {
     "headers": {
-      "content-type": "text/html",
+      "content-type": "text/html; charset=utf-8",
       "content-length": v.length.toString(),
     },
     ...init,
   });
+}
+
+/** Check if response is HTML */
+export function isHtml(res: Response) {
+  return res.headers
+    .get("content-type")
+    ?.toLowerCase()
+    .startsWith("text/html") ?? false;
 }
 
 /** Return a JSON response */

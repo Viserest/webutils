@@ -1,10 +1,10 @@
 
-export * from "./error.js";
-export * from "./form.js";
+export * from "./error";
+export * from "./form";
 // handler requires drizzle-orm and itty-router
-export * from "./password.js";
-export * from "./result.js";
+export * from "./password";
+export * from "./result";
 // router requires itty-router
-export * from "./tag.js";
-export * from "./utils.js";
-export * from "./uuid.js";
+export * from "./tag";
+export * from "./utils";
+export * from "./uuid";

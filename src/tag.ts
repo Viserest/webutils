@@ -1,5 +1,5 @@
 
-import { Uuid } from "./uuid.js";
+import { Uuid } from "./uuid";
 
 export type Node = Element | string | number;
 

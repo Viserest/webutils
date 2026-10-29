@@ -1,7 +1,7 @@
 
-import { Element, form, tag } from "./tag.js";
-import { type Result, Err } from "./result.js";
-import { parseToObject } from "./utils.js";
+import { Element, form, tag } from "./tag";
+import { type Result, Err } from "./result";
+import { parseToObject } from "./utils";
 
 export type FieldDef = {
 	type: "text" | "email" | "password";

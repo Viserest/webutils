@@ -4,10 +4,10 @@ import * as d from "drizzle-orm";
 import { type DrizzleD1Database } from "drizzle-orm/d1";
 import type * as s from "drizzle-orm/sqlite-core";
 
-import { nowSecs, parseToObject, reply, toInt } from "./utils.js";
-import { Uuid } from "./uuid.js";
-import { defineForm, type Fields, type FormResult } from "./form.js";
-import { tag } from "./tag.js";
+import { nowSecs, parseToObject, reply, toInt } from "./utils";
+import { Uuid } from "./uuid";
+import { defineForm, type Fields, type FormResult } from "./form";
+import { tag } from "./tag";
 
 //
 // Payloads
@@ -162,9 +162,9 @@ const MAX_LIMIT = 100;
  * @param cfg
  * @returns
  */
-export function createHandlers<Schema extends Record<string, string>, Base extends IRequest, A extends any[]>(cfg: {
+export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 	/** Where the default handlers get their db. Replaces the hard-coded `req.db ?? createDb(env)`. */
-	getDb: (req: Base, ...args: A) => DrizzleD1Database<Schema>;
+	getDb: (req: Base, ...args: A) => DrizzleD1Database;
 }) {
 	const chain =
 		(opt: HandlerOption<Base, A, any>, fallback: MainHandler<Base, A>): MainHandler<Base, A> =>

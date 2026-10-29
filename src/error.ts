@@ -1,8 +1,9 @@
 
-import { tag } from "./tag.js";
-import { html, escape } from "./utils.js";
+import { tag } from "./tag";
+import { html, escape } from "./utils";
 
-const TITLES: Record<number, string> = {
+/** Generic, client-safe messages */
+export const messages: Record<number, string> = {
 	400: "Bad Request",
 	401: "Unauthorized",
 	403: "Forbidden",
@@ -15,21 +16,25 @@ const TITLES: Record<number, string> = {
 	502: "Bad Gateway",
 	503: "Service Unavailable",
 };
+export function messageFor(status: number): string {
+  return messages[status] ?? (status >= 500 ? "Internal server error" : "Request failed");
+}
 
 // Responses produced by errorPage, so `finally` doesn't render them twice
 export const rendered = new WeakSet<Response>();
 
 export function errorPage(status: number, request: Request): Response {
-	const url = new URL(request.url);
-	const shownUrl = escape(url.origin + url.pathname); // no query string or hash
-	const title = TITLES[status] ?? "Error";
+  const url = new URL(request.url);
+
+	// dont show query string or hash
+	const shownUrl = escape(url.origin + url.pathname);
 
 	const res = html("<!DOCTYPE html>" + tag("html", { "lang": "en" },
 		tag("head", {},
 			tag("meta", { "charset": "utf-8" }),
 			tag("meta", { "name": "viewport", "content": "width=device-width, initial-scale=1" }),
 			tag("meta", { "name": "robots", "content": "noindex" }),
-			tag("title", {}, status + " " + escape(title)),
+			tag("title", {}, status + " " + messageFor(status)),
 			tag("style", {}, `body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh;
 				display: grid; place-items: center; text-align: center; }
 				h1 { font-size: 1.25rem; margin: 0 0 1rem; }
@@ -40,7 +45,7 @@ export function errorPage(status: number, request: Request): Response {
 			tag("main", {},
 				tag("h1", {}, "Something went wrong"),
 				tag("p", { "class": "code" }, status),
-				tag("p", {}, escape(title)),
+				tag("p", {}, messageFor(status)),
 				tag("p", { "class": "url" }, shownUrl),
 			),
 		),

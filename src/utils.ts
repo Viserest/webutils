@@ -137,7 +137,7 @@ export function redirect(
     ...init,
     "status": 303,
     "headers": {
-      ...init!.headers,
+      ...init?.headers,
       "location": url,
     },
   });

@@ -60,8 +60,8 @@ export function parseToObject<Data = Record<string, unknown>>(
   }
   for (const k of keysOptional) if (k in input) out[k] = input[k];
 
-  if (bad.length) return Err(`Missing or invalid: ${bad.join(", ")}`);
-  return Ok(out as Data);
+  if (bad.length === 0) return Ok(out as Data);
+  return Err(`Missing or invalid: ${bad.join(", ")}`);
 }
 
 /** Get cookie name from headers */
@@ -79,18 +79,19 @@ export function getCookie(headers: Headers, name: string): Result<string> {
 }
 
 /** Return a HTML response */
-export function html(v: string, init?: ResponseInit) {
+export function html(v: string, init?: ResponseInit): Response {
   return new Response(v, {
     "headers": {
       "content-type": "text/html; charset=utf-8",
       "content-length": v.length.toString(),
+      ...init!.headers,
     },
     ...init,
   });
 }
 
 /** Check if response is HTML */
-export function isHtml(res: Response) {
+export function isHtml(res: Response): boolean {
   return res.headers
     .get("content-type")
     ?.toLowerCase()
@@ -98,34 +99,46 @@ export function isHtml(res: Response) {
 }
 
 /** Return a JSON response */
-export function json(v: unknown, init?: ResponseInit) {
+export function json(v: unknown, init?: ResponseInit): Response {
   const a = JSON.stringify(v);
   return new Response(a, {
     "headers": {
       "content-type": "application/json",
       "content-length": a.length.toString(),
+      ...init!.headers,
     },
     ...init,
   });
 }
 
-/** Return a JSON response with message, status code, and extra data */
-export function reply(message: string, status: number, extra: Record<string, unknown> = {}) {
+/** Return a JSON response with message, status code, and extra payload data */
+export function reply(
+  message: string,
+  status: number,
+  extra: Record<string, unknown> = {},
+  init?: ResponseInit,
+): Response {
   return json({
     "is_error": status <= 200 && status > 300,
     "message": message,
-    ...extra
+    "payload": extra,
   }, {
     "status": status,
+    ...init,
   });
 }
 
 /** Return a redirect response to url using status code 303 */
-export function redirect(url: string) {
+export function redirect(
+  url: string,
+  init?: ResponseInit,
+): Response {
   return new Response(null, {
     "status": 303,
     "headers": {
       "location": url,
+      ...init!.headers,
     },
+    ...init,
   });
 }

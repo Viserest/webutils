@@ -54,8 +54,8 @@ export function errorPage(status: number, request: Request): Response {
 			status,
 			headers: {
 				"cache-control": "no-store",
-			}
-		}
+			},
+		},
 	);
 
 	rendered.add(res);

@@ -1,15 +1,15 @@
 
+import { Err, Ok, type Result } from "./result";
+
 export class Uuid {
   public readonly value: Uint8Array<ArrayBuffer>;
 
+  /** Value MUST be 16 bytes long because this function doesn't check length. */
   private constructor(value: Uint8Array) {
-    if (value.length !== 16) {
-      throw new Error("Uuid must contain exactly 16 bytes");
-    }
-
     this.value = new Uint8Array(value);
   }
 
+  /** Generates a random uuid with version code and RFC 4122 variant. */
   public static randomv4(): Uuid {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
 
@@ -22,27 +22,30 @@ export class Uuid {
     return new Uuid(bytes);
   }
 
-  public static fromBytes(bytes: Uint8Array): Uuid {
-    if (bytes.length !== 16) {
-      throw new Error("Uuid must contain exactly 16 bytes");
+  /** Make a uuid from bytes. The value must be 16 bytes long. */
+  public static fromBytes(value: Uint8Array): Result<Uuid> {
+    if (value.length !== 16) {
+      return Err("Uuid must contain exactly 16 bytes");
     }
 
-    return new Uuid(bytes);
+    return Ok(new Uuid(value));
   }
 
-  public static fromString(value: string): Uuid {
+  /** Make a uuid from string of hex separated by hyphens. Excluding all hyphens, the value must be 32 bytes long. */
+  public static fromString(value: string): Result<Uuid> {
     const hex = value.replaceAll("-", "");
 
     if (!/^[0-9a-fA-F]{32}$/.test(hex)) {
-      throw new Error(`Invalid Uuid string: ${value}`);
+      return Err(`Invalid Uuid string: ${value}`);
     }
 
     return Uuid.fromHex(hex);
   }
 
-  public static fromHex(value: string): Uuid {
+  /** Make a uuid from string of hex. The value must be 32 bytes long. */
+  public static fromHex(value: string): Result<Uuid> {
     if (!/^[0-9a-fA-F]{32}$/.test(value)) {
-      throw new Error("Uuid hex must contain exactly 32 hexadecimal characters");
+      return Err("Uuid hex must contain exactly 32 hexadecimal characters");
 		}
 
 		const bytes = new Uint8Array(16);
@@ -50,13 +53,15 @@ export class Uuid {
       bytes[i] = parseInt(value.slice(i * 2, i * 2 + 2), 16);
     }
 
-    return new Uuid(bytes);
+    return Ok(new Uuid(bytes));
   }
 
+  /** Return uuid as byte array. */
   public toBytes(): Uint8Array {
     return Uint8Array.from(this.value);
   }
 
+  /** Return uuid as string with hyphens. */
   public toString(): string {
     const hex = this.toHex();
 
@@ -69,6 +74,7 @@ export class Uuid {
     ].join("-");
   }
 
+  /** Return uuid as string without hyphens. */
 	public toHex(): string {
 		return Array.from(this.value, b => b.toString(16).padStart(2, "0")).join("");
   }

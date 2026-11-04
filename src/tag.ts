@@ -6,13 +6,15 @@ export type Node = Element | string | number;
 export class Element {
 	public name: string;
 	public attributes: Record<string, string>;
-	public children: Node[];
+  public children: Node[];
+
 	public constructor(name: string) {
 		this.name = name;
 		this.attributes = {};
 		this.children = [];
 		return this;
-	}
+  }
+
 	/** Append to attributes */
 	public attributeAppend(entries: Record<string, string>): Element {
 		for (const [key, value] of Object.entries(entries)) {
@@ -24,12 +26,14 @@ export class Element {
 			}
 		}
 		return this;
-	}
+  }
+
 	/** Append to children */
 	public childrenAppend(...children: Node[]): Element {
 		this.children.push(...children);
 		return this;
-	}
+  }
+
 	/** Query for a certain tag */
 	public queryAll(name: string): Element[] {
 		const found: Element[] = [];
@@ -44,7 +48,8 @@ export class Element {
 			}
 		}
 		return found;
-	}
+  }
+
 	/** Get as string */
 	public toString(): string {
     const attributes = Object.entries(this.attributes)
@@ -68,7 +73,7 @@ export class Element {
  * @param children List of children
  * @returns
  */
-export function tag(name: string, attributes: Record<string, string>, ...children: Node[]): Element {
+export function tag(name: string, attributes?: Record<string, string>, ...children: Node[]): Element {
 	let result = new Element(name);
 	if (attributes) result.attributeAppend(attributes);
 	result.childrenAppend(...children);

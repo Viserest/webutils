@@ -81,12 +81,12 @@ export function getCookie(headers: Headers, name: string): Result<string> {
 /** Return a HTML response */
 export function html(v: string, init?: ResponseInit): Response {
   return new Response(v, {
+    ...init,
     "headers": {
+      ...init?.headers,
       "content-type": "text/html; charset=utf-8",
       "content-length": v.length.toString(),
-      ...init!.headers,
     },
-    ...init,
   });
 }
 
@@ -102,12 +102,12 @@ export function isHtml(res: Response): boolean {
 export function json(v: unknown, init?: ResponseInit): Response {
   const a = JSON.stringify(v);
   return new Response(a, {
+    ...init,
     "headers": {
+      ...init?.headers,
       "content-type": "application/json",
       "content-length": a.length.toString(),
-      ...init!.headers,
     },
-    ...init,
   });
 }
 
@@ -123,8 +123,8 @@ export function reply(
     "message": message,
     "payload": extra,
   }, {
-    "status": status,
     ...init,
+    "status": status,
   });
 }
 
@@ -134,11 +134,11 @@ export function redirect(
   init?: ResponseInit,
 ): Response {
   return new Response(null, {
+    ...init,
     "status": 303,
     "headers": {
-      "location": url,
       ...init!.headers,
+      "location": url,
     },
-    ...init,
   });
 }

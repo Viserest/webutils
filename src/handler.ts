@@ -137,7 +137,7 @@ type OpType = "list" | "create" | "read" | "update" | "delete";
 
 /** Each handler key maps to its FormResult, or null when it was skipped. */
 type HandlerResult<T extends TableWithId, O extends RouteOptions<T>> = {
-	[K in OpType]: O[K] extends null ? null : FormResult<Fields, Payloads<T>[K]>;
+	[K in OpType]: O[K] extends null ? null : FormResult<Fields>;
 } & {
 	/** All configured forms, wrapped in a single <div>. */
 	renderAll(): Element;
@@ -231,16 +231,19 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 			Object.fromEntries(
 				keys.map((k) => {
 					const col = columns[k]!;
-					const type = /pass/i.test(k) ? "password" : /mail/i.test(k) ? "email" : "text";
-					// Required only if the DB requires it: NOT NULL and no default.
 					const optional = allOptional || !col.notNull || col.hasDefault;
-					return [k, { type, placeholder: k, ...(optional && { optional: true as const }) }];
+					return [k + optional ? "?" : "", []];
 				}),
 			);
 
-		const idField: Fields = { id: { type: "text", placeholder: "id" } };
+    const idField: Fields = {
+      id: [(i) => {
+        const a = Uuid.fromString(i);
+        return a.ok ? a.value : false;
+      }],
+    };
 
-		const forms: Record<OpType, FormResult<Fields, any> | null> = {
+		const forms: Record<OpType, FormResult<Fields> | null> = {
 			list: null,
 			create: null,
 			read: null,
@@ -281,8 +284,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 				method: "GET",
 				href: path,
 				fields: {
-					limit: { type: "text", placeholder: "limit" },
-					offset: { type: "text", placeholder: "offset" },
+					limit: [],
+					offset: [],
 				},
 			});
 		}
@@ -415,8 +418,8 @@ export function createHandlers<Base extends IRequest, A extends any[]>(cfg: {
 				"div",
 				{},
 				...Object.entries(forms)
-					.filter(([, f]) => f !== null)
-					.map(([type, f]) => f!.render({ submit_text: type })),
+					.filter(([_, f]) => f !== null)
+          .map(([_, f]) => f!.render({})),
 			);
 
 		return { ...forms, renderAll } as unknown as HandlerResult<T, O>;

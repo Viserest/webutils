@@ -91,8 +91,8 @@ export function form(options: FormOption, ...children: Node[]): Element {
  * A step is a string (replaces the current input), a boolean (true = continue,
  * false = error), or a thunk receiving the *current* input and returning either.
  */
-type Step = (i: string) => string | boolean;
-type Fields = Record<string, Step[]>;
+export type Step = (i: string) => boolean | any;
+export type Fields = Record<string, Step[]>;
 
 // Optional fields are declared with a "?" suffix on the key: "username?": ...
 type OptionalKeys<F> = { [K in keyof F]: K extends `${string}?` ? K : never }[keyof F];
@@ -177,11 +177,16 @@ export function defineForm<const F extends Fields>(def: {
       let failed = false;
       for (let k = 0; k < fn.length; k++) {
         const r = fn[k](current);
-        if (typeof r === "string") current = r;
-        else if (!r) {
-          errors += name + " validation failed at step " + k + 1;
-          failed = true;
-          break;
+        // True or void: continue
+        // False: error
+        if (r === false) {
+	        errors += name + " validation failed at step " + (k + 1);
+	        failed = true;
+	        break;
+        }
+        // Anything else: Use for next step
+        else if (r !== true && r !== undefined) {
+	        current = r;
         }
       }
       if (!failed) value[name] = current;

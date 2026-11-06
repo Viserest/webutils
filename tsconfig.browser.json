@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "sourceMap": true,
+    "types": ["@types/web"],
+    "rootDir": "./src",
+    "outDir": "./dist/browser"
+  },
+  "include": ["src/**/*.browser.ts"]
+}
